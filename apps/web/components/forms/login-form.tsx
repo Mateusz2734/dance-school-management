@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { signIn, useSession } from "@/lib/auth/auth-client";
 import { Button } from "@repo/ui/button";
 import {
   Card,
@@ -41,6 +42,8 @@ export function LoginForm() {
     }
   });
 
+  console.log(useSession());
+
   const onSubmit = (values: FormValues) => {
     toast(
       <pre className="w-full rounded-md bg-slate-950">
@@ -48,9 +51,26 @@ export function LoginForm() {
       </pre>
     );
 
-    setTimeout(() => {
-      redirect("/", RedirectType.replace);
-    }, 1000);
+    // fetch("http://localhost:8080/", { credentials: "include" });
+
+    const { email, password } = values;
+
+    signIn.email({
+      email,
+      password,
+      fetchOptions: {
+        onError: (ctx) => {
+          toast.error(ctx.error.message);
+        },
+        onSuccess: async () => {
+          toast.success("Logged in successfully");
+        },
+      },
+    });
+
+    // setTimeout(() => {
+    //   redirect("/", RedirectType.replace);
+    // }, 1000);
   };
 
   return (

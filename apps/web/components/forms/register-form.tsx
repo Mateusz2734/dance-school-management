@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { signUp } from "@/lib/auth/auth-client";
+
 import { Button } from "@repo/ui/button";
 import {
   Card,
@@ -58,9 +60,21 @@ export function RegisterForm() {
       </pre>
     );
 
-    setTimeout(() => {
-      redirect("/", RedirectType.replace);
-    }, 1000);
+    signUp.email({
+      email: values.email,
+      password: values.password,
+      name: values.name,
+      fetchOptions: {
+        onError: (ctx) => {
+          toast.error(ctx.error.message);
+        }, onSuccess: async () => {
+          toast.success("Signed up successfully");
+        },
+      }
+    });
+    // setTimeout(() => {
+    //   redirect("/", RedirectType.replace);
+    // }, 1000);
   };
 
   return (
