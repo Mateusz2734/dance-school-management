@@ -17,6 +17,7 @@ import privateClassesRouter from "../routes/private_classes/privateClasses";
 import publicScheduleRouter from "../routes/schedule/publicSchedule";
 import scheduleRouter from "../routes/schedule/schedule";
 import { setupSwagger } from "./swagger";
+import s3Router from "../routes/s3/s3";
 
 export function createApp() {
   const app = express();
@@ -30,9 +31,10 @@ export function createApp() {
   }
   app.use("/public/pricing", pricingRouter);
   app.use("/public/cms", publicCmsRouter);
+  app.use("/s3-endpoint", s3Router);
   app.use(handleUserContext);
   app.use("/public/schedule", publicScheduleRouter);
-  app.use("/uploads", express.static(path.resolve("uploads")));
+  // app.use("/uploads", express.static(path.resolve("uploads")));
   app.use("/cms", checkRole(["COORDINATOR"]), cmsRouter);
   app.use("/pricing", pricingRouter);
   app.use("/public/advanced-search", advancedSearchRouter);
@@ -40,7 +42,7 @@ export function createApp() {
   app.use("/schedule", checkRole(["STUDENT", "INSTRUCTOR"]), scheduleRouter);
   app.use("/private-class", checkRole(["INSTRUCTOR"]), privateClassesRouter);
   app.get("/", (req, res) => {
-    res.send("Hello from product-microservice1");
+    res.send("Hello from product-microservice");
   });
   app.use((req, res) => {
     throw new UniversalError(404, "Endpoint not found", []);
