@@ -484,7 +484,18 @@ async function main() {
     },
   });
 
-  for (const classTemplate of classTemplatesJson) {
+  try {
+    await generateDanceClassesWithoutCourses();
+    await generateDanceClassesWithCourses();
+  } catch (err) {
+    console.error(
+      `Error generating classes and class templates with Gemini: ${err}`,
+    );
+  }
+
+  for (const classTemplate of classTemplatesJson.concat(
+    classTemplatesGeminiJson,
+  )) {
     const descEmbedded = (await embed(classTemplate.description, false))
       .embeddingList;
     const danceCategory = danceCategoriesJson.find(
@@ -520,7 +531,7 @@ async function main() {
     });
   }
 
-  for (const course of coursesJson) {
+  for (const course of coursesJson.concat(coursesGeminiJson)) {
     const descEmbedded = (await embed(course.description, false)).embeddingList;
     const danceCategory = danceCategoriesJson.find(
       (dc) => dc.id === course.danceCategoryId,
@@ -528,44 +539,24 @@ async function main() {
     const advancementLevel = advancementLevelsJson.find(
       (al) => al.id === course.advancementLevelId,
     );
-    const courseClassTemplates = classTemplatesJson.filter(
-      (ct) => ct.courseId === course.id,
-    );
-    const classTemplatesClassesCountsMap = new Map();
-    courseClassTemplates.forEach((cct) => {
-      classTemplatesClassesCountsMap.set(
-        cct.id,
-        (classTemplatesClassesCountsMap.get(cct.id) ?? 0) + 1,
-      );
-    });
 
     const price = course.customPrice;
 
-    const classTemplatesIds = courseClassTemplates.map((ct) => ct.id);
+    const courseClasses = await prisma.class.findMany({
+      where: {
+        classTemplate: {
+          courseId: course.id,
+        },
+      },
+    });
 
-    const courseClasses = classesJson.filter((c) =>
-      classTemplatesIds.includes(c.classTemplateId),
-    );
+    const startDate = courseClasses.reduce((acc, cur) =>
+      cur.startDate < acc.startDate ? cur : acc,
+    ).startDate;
 
-    const maxDate = new Date(8640000000000000);
-
-    const startDate = new Date(
-      courseClasses.reduce(
-        (acc, cur) =>
-          new Date(cur.startDate) < new Date(acc) ? cur.startDate : acc,
-        String(maxDate),
-      ),
-    );
-
-    const minDate = new Date(0);
-
-    const endDate = new Date(
-      courseClasses.reduce(
-        (acc, cur) =>
-          new Date(cur.endDate) > new Date(acc) ? cur.endDate : acc,
-        String(minDate),
-      ),
-    );
+    const endDate = courseClasses.reduce((acc, cur) =>
+      cur.endDate > acc.endDate ? cur : acc,
+    ).endDate;
 
     const doc: CourseDocument = {
       name: course.name,
@@ -594,15 +585,6 @@ async function main() {
       id: String(course.id),
       document: doc,
     });
-
-    try {
-      await generateDanceClassesWithoutCourses();
-      await generateDanceClassesWithCourses();
-    } catch (err) {
-      console.error(
-        `Error generating classes and class templates with Gemini: ${err}`,
-      );
-    }
   }
 }
 
